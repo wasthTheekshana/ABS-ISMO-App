@@ -1,0 +1,9 @@
+/*
+ * AB Securitas ISOMS global styles: "The Duty Register".
+ * tokens: colours and type, light and dark  ·  base: elements, stamps, buttons, forms
+ * shell: bar, navigation, phone tab bar, board strip  ·  register: tables, sign-in, map, print
+ */
+@import './styles/tokens.css';
+@import './styles/base.css';
+@import './styles/shell.css';
+@import './styles/register.css';

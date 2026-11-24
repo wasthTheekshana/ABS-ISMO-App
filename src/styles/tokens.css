@@ -1,0 +1,144 @@
+/*
+ * AB Securitas ISOMS design tokens.
+ * Brand colours come from absecuritas.com: the logo and primary purple #7C1C7C, deep plums
+ * #2D052D and #300B30, soft lilac #F7F1F7 and the warm orange accent #D26535.
+ * Light by default; dark by device preference, by choice, or by default for the Control Room.
+ * Components use these tokens and never hard-code a colour.
+ */
+
+:root {
+  --font-body: 'Public Sans', 'Noto Sans Sinhala', 'Noto Sans Tamil', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Big Shoulders Display', 'Arial Narrow', 'Public Sans', sans-serif;
+
+  /* Surfaces and ink */
+  --paper: #f7f1f7;
+  --paper-2: #efe5ef;
+  --surface: #ffffff;
+  --band: #faf5fa;
+  --ink: #1e1220;
+  --ink-2: #3a2a3d;
+  --muted: #6b5a6e;
+  --dim: #75637a;
+  --rule: #e6d9e6;
+  --rule-strong: #c9b3c9;
+
+  /* Brand */
+  --brand: #7c1c7c;
+  --brand-2: #5a1160;
+  --on-brand: #ffffff;
+  --brand-tint: #f1e4f1;
+  --sidebar: #2d052d;
+  --sidebar-2: #3d0f3e;
+  --on-sidebar: #f6eaf6;
+  --on-sidebar-muted: #c9a9c9;
+  --accent: #e8793f;
+  --accent-ink: #a8441a;
+  --accent-bg: #fbe6d8;
+
+  /* Kept for older markup: the "green" and "brass" names now map to the brand */
+  --green: var(--sidebar);
+  --green-2: var(--sidebar-2);
+  --on-green: var(--on-sidebar);
+  --brass: var(--accent);
+  --brass-ink: var(--accent-ink);
+  --brass-bg: var(--accent-bg);
+
+  /* Status */
+  --alarm: #c62828;
+  --alarm-bg: #fbe4e4;
+  --cleared: #1f7a4d;
+  --cleared-bg: #ddf1e6;
+  --warn: #9a5b00;
+  --warn-bg: #fbebcb;
+  --info: #1d5f99;
+  --info-bg: #dcebf7;
+
+  /* Pastel reading tiles */
+  --tint-green: #e1f4e8;
+  --tint-blue: #e1edf9;
+  --tint-red: #fbe3e3;
+  --tint-purple: #f0e2f0;
+  --tint-amber: #fcefd6;
+
+  --focus: #1d5f99;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --bar-h: 64px;
+  --tabbar-h: 62px;
+  --sidebar-w: 248px;
+}
+
+/* Dark: chosen by the person, by their device, or by default for the Control Room. */
+:root[data-theme='dark'], .night {
+  --paper: #140614;
+  --paper-2: #1b0a1c;
+  --surface: #1f0d20;
+  --band: #261128;
+  --ink: #f3e8f3;
+  --ink-2: #dcc8dd;
+  --muted: #b79db8;
+  --dim: #a88dab;
+  --rule: #3a213c;
+  --rule-strong: #573559;
+  --brand: #b45cb4;
+  --brand-2: #c77fc7;
+  --on-brand: #1a0a1b;
+  --brand-tint: #3a1c3b;
+  --sidebar: #0e040e;
+  --sidebar-2: #1d0b1e;
+  --accent: #f08a4f;
+  --accent-ink: #f3a273;
+  --accent-bg: #3d2112;
+  --alarm: #ff7a7a;
+  --alarm-bg: #43191c;
+  --cleared: #5fcf95;
+  --cleared-bg: #163826;
+  --warn: #f0c060;
+  --warn-bg: #3d2f12;
+  --info: #7cb8ee;
+  --info-bg: #142d45;
+  --tint-green: #153324;
+  --tint-blue: #14283d;
+  --tint-red: #3d1a1d;
+  --tint-purple: #321a34;
+  --tint-amber: #3a2d12;
+  --focus: #7cb8ee;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --paper: #140614;
+    --paper-2: #1b0a1c;
+    --surface: #1f0d20;
+    --band: #261128;
+    --ink: #f3e8f3;
+    --ink-2: #dcc8dd;
+    --muted: #b79db8;
+    --dim: #a88dab;
+    --rule: #3a213c;
+    --rule-strong: #573559;
+    --brand: #b45cb4;
+    --brand-2: #c77fc7;
+    --on-brand: #1a0a1b;
+    --brand-tint: #3a1c3b;
+    --sidebar: #0e040e;
+    --sidebar-2: #1d0b1e;
+    --accent: #f08a4f;
+    --accent-ink: #f3a273;
+    --accent-bg: #3d2112;
+    --alarm: #ff7a7a;
+    --alarm-bg: #43191c;
+    --cleared: #5fcf95;
+    --cleared-bg: #163826;
+    --warn: #f0c060;
+    --warn-bg: #3d2f12;
+    --info: #7cb8ee;
+    --info-bg: #142d45;
+    --tint-green: #153324;
+    --tint-blue: #14283d;
+    --tint-red: #3d1a1d;
+    --tint-purple: #321a34;
+    --tint-amber: #3a2d12;
+    --focus: #7cb8ee;
+  }
+}

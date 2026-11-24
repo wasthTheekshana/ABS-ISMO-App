@@ -1,0 +1,113 @@
+/* Base element styles, panels, rubber-stamp statuses, buttons, forms and alerts. */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+html, body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+body { min-height: 100vh; overflow-x: hidden; }
+
+h1, h2, h3, h4 { font-weight: 700; color: var(--ink); line-height: 1.2; }
+
+button, input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+
+a { color: var(--info); }
+
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 3px; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--paper); }
+::-webkit-scrollbar-thumb { background: var(--rule-strong); border-radius: 4px; }
+
+.skip-link {
+  position: absolute; left: 8px; top: -48px; z-index: 300;
+  background: var(--green); color: var(--on-green); padding: 10px 14px; border-radius: var(--radius-sm);
+}
+.skip-link:focus { top: 8px; }
+
+/* ---------- Panels ---------- */
+.glass-panel, .panel {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+/* ---------- Stamps: every status is a rubber stamp ---------- */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px;
+  border: 2px solid currentColor;
+  border-radius: 2px;
+  outline: 1px solid currentColor; outline-offset: 2px;
+  font-size: 11px; font-weight: 800; line-height: 1.35;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  background: transparent;
+  white-space: nowrap;
+  margin: 3px;
+}
+.badge-success { color: var(--cleared); }
+.badge-warning { color: var(--warn); }
+.badge-danger { color: var(--alarm); }
+.badge-info { color: var(--info); }
+
+/* ---------- Buttons: 44px touch targets on touch screens ---------- */
+.btn-primary, .btn-gold, .btn-secondary {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 40px; padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-weight: 700; cursor: pointer;
+  border: 2px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.btn-primary { background: var(--brand); color: var(--on-brand); border-color: var(--brand); }
+.btn-primary:hover:not(:disabled) { background: var(--brand-2); border-color: var(--brand-2); }
+.btn-gold { background: var(--accent); color: #2a1206; border-color: var(--accent); }
+.btn-gold:hover:not(:disabled) { filter: brightness(1.07); }
+.btn-secondary { background: transparent; color: var(--ink); border-color: var(--rule-strong); }
+.btn-secondary:hover:not(:disabled) { background: var(--band); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+@media (pointer: coarse) {
+  .btn-primary, .btn-gold, .btn-secondary { min-height: 44px; }
+}
+
+/* ---------- Forms ---------- */
+.form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.form-label { font-size: 13px; font-weight: 700; color: var(--ink-2); }
+
+input, select, textarea, .form-input, .form-select, .form-textarea {
+  background: var(--surface);
+  border: 2px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  min-height: 40px;
+  color: var(--ink);
+  max-width: 100%;
+}
+input[type='checkbox'], input[type='radio'] { min-height: 0; width: 18px; height: 18px; accent-color: var(--brand); }
+textarea { min-height: 80px; resize: vertical; }
+input:focus, select:focus, textarea:focus { border-color: var(--focus); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 28%, transparent); }
+input::placeholder, textarea::placeholder { color: var(--dim); }
+@media (pointer: coarse) { input, select, textarea { min-height: 44px; font-size: 16px; } }
+
+/* ---------- Alerts ---------- */
+[role='alert'] {
+  background: var(--alarm-bg); color: var(--alarm);
+  border-left: 4px solid var(--alarm); border-radius: var(--radius-sm);
+  padding: 10px 14px; font-size: 13px; font-weight: 600;
+}
+[role='status'] {
+  background: var(--cleared-bg); color: var(--cleared);
+  border-left: 4px solid var(--cleared); border-radius: var(--radius-sm);
+  padding: 10px 14px; font-size: 13px; font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}

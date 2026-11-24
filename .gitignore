@@ -1,0 +1,21 @@
+node_modules/
+dist/
+.env
+*.log
+npm-debug.log*
+
+# Build output and binaries (rebuilt from source; the APKs are ~20 MB each)
+*.apk
+*.aab
+mobile_app/build/
+mobile_app/.dart_tool/
+
+# Client-confidential source documents: kept locally, never published
+docs/*.docx
+srs_extracted.txt
+
+# Local tooling and scratch
+.claude/
+graphify-out/
+*.tmp.mjs
+
