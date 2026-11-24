@@ -2,7 +2,7 @@ import express from 'express';
 import { query } from '../db/pool.js';
 import { validatePayload, authenticate, requireRole } from '../middleware/security.js';
 import { STAFF_ROLES, ATTENDANCE_LOGGING_ROLES as LOGGING_ROLES } from '../middleware/roles.js';
-import { siteScope, requireSiteInScope } from '../middleware/scope.js';
+import { siteScope, requireSiteInScope, isSiteInScope } from '../middleware/scope.js';
 import { makeRecordId } from '../utils/ids.js';
 
 const router = express.Router();
@@ -98,7 +98,7 @@ router.post('/log', authenticate, requireRole(...LOGGING_ROLES), validatePayload
     if (existing.rows.length > 0) {
       return res.status(409).json({
         error: 'This officer already has a late-reporting entry logged for this date and shift',
-        existingRecord: existing.rows[0]
+        existingRecord: (await isSiteInScope(req.user, existing.rows[0].siteId)) ? existing.rows[0] : null
       });
     }
 
@@ -146,7 +146,7 @@ router.post('/log', authenticate, requireRole(...LOGGING_ROLES), validatePayload
       );
       return res.status(409).json({
         error: 'This officer already has a late-reporting entry logged for this date and shift',
-        existingRecord: race.rows[0] || null
+        existingRecord: race.rows[0] && (await isSiteInScope(req.user, race.rows[0].siteId)) ? race.rows[0] : null
       });
     }
     console.error('Late log error:', error);
