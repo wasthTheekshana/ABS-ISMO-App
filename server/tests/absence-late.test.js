@@ -259,3 +259,31 @@ describe('who may log absence and late reports (SRS FR-4, FR-5)', () => {
     }
   );
 });
+
+/** Regression: the duplicate-entry 409 must not reveal a record from a site the caller cannot see. */
+describe.each([
+  ['absence', '/api/absence/log', absence],
+  ['late', '/api/late/log', late]
+])('duplicate %s entry across sites', (_name, path, build) => {
+  const OTHER_SM = USERS.SM_2; // Sector 02: can see site C, not site A
+
+  it('returns the existing record when it is inside the caller\'s scope', async () => {
+    const first = await post(path, build({ reason: 'In scope' }));
+    const second = await post(path, build());
+
+    expect(second.status).toBe(409);
+    expect(second.body.existingRecord).toMatchObject({ logId: first.body.logId, siteId: SITES.A.id });
+  });
+
+  it('hides a record that belongs to a site outside the caller\'s scope', async () => {
+    const first = await post(path, build({ siteId: SITES.C.id, siteName: SITES.C.name, reason: 'Private to sector 02' }), OTHER_SM);
+    expect(first.status).toBe(201);
+
+    // SM One reports the same officer/date/shift at their own site A.
+    const second = await post(path, build(), SM);
+
+    expect(second.status).toBe(409);
+    expect(second.body.existingRecord).toBeNull();
+    expect(JSON.stringify(second.body)).not.toContain('Private to sector 02');
+  });
+});
