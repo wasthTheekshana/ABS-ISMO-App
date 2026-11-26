@@ -174,3 +174,32 @@ serves the app with the right caching and security headers.
 
 Not checked, because it needs the real server: the data-disk bind mount and its ownership, the certificate,
 the shared Nginx, the firewall and the real domain.
+
+## Automatic deploys (GitHub Actions)
+
+Two workflows live in .github/workflows. ci.yml runs on every push and pull request: backend tests against a throwaway Postgres,
+the web build, Flutter analyze and test, and both Docker image builds. deploy.yml runs after ci.yml passes on main: it connects to
+the server, pulls main, rebuilds, reloads the shared Nginx and checks https://ismo.testsys.shop/api/health.
+It does nothing until the secrets below exist, so CI works on its own.
+
+One-time setup. On the server, make a key used only for deploys:
+
+```
+ssh-keygen -t ed25519 -f ~/.ssh/isoms_deploy -N "" -C github-actions-isoms
+cat ~/.ssh/isoms_deploy.pub >> ~/.ssh/authorized_keys
+cat ~/.ssh/isoms_deploy
+ssh-keyscan -t ed25519 34.93.171.14
+```
+
+In GitHub, open the repository, Settings, Secrets and variables, Actions, and add four repository secrets:
+
+| Secret | Value |
+|--------|-------|
+| DEPLOY_HOST | 34.93.171.14 |
+| DEPLOY_USER | the server login user |
+| DEPLOY_SSH_KEY | the private key printed by the cat command (the whole file) |
+| DEPLOY_KNOWN_HOSTS | the line printed by ssh-keyscan |
+
+Then delete the private key from the server (rm ~/.ssh/isoms_deploy) and keep only the .pub line in authorized_keys.
+The first deploy still has to be done by hand with the steps above (certificate, Nginx blocks, first account).
+To deploy without a push, use Actions, Deploy to DOK server, Run workflow. To stop automatic deploys, delete the secrets.

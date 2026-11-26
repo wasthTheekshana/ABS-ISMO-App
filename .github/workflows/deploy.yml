@@ -1,0 +1,74 @@
+name: Deploy to DOK server
+
+# Runs after CI passes on main, or by hand from the Actions tab.
+# It does nothing until the four DEPLOY_* secrets exist (see deploy/DOK-DEPLOY.md, "Automatic deploys").
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Pull, rebuild and check
+    runs-on: ubuntu-latest
+    # Only deploy a commit whose CI run succeeded (a manual run is allowed straight away).
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+    steps:
+      - name: Check the deploy secrets exist
+        id: cfg
+        run: |
+          if [ -z "$DEPLOY_HOST" ] || [ -z "$DEPLOY_USER" ] || [ -z "$DEPLOY_SSH_KEY" ] || [ -z "$DEPLOY_KNOWN_HOSTS" ]; then
+            echo "Deploy secrets are not set, skipping."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Prepare SSH
+        if: steps.cfg.outputs.ready == 'true'
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Update the server
+        if: steps.cfg.outputs.ready == 'true'
+        run: |
+          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          cd ~/isoms-stack
+          git pull --ff-only origin main
+          git log -1 --oneline
+          docker compose -f deploy/docker-compose.yml --env-file .env up -d --build
+          docker compose -f deploy/docker-compose.yml --env-file .env ps
+          docker logs isoms-migrate | tail -5
+          # The shared Nginx may hold a stale container address after the containers were recreated.
+          cd ~/dok-stack
+          docker compose exec -T nginx nginx -s reload
+          docker image prune -f
+          REMOTE
+
+      - name: Check the API is healthy
+        if: steps.cfg.outputs.ready == 'true'
+        run: |
+          for i in 1 2 3 4 5 6; do
+            if curl -fsS https://ismo.testsys.shop/api/health; then exit 0; fi
+            sleep 10
+          done
+          echo "Health check failed after the deploy" >&2
+          exit 1
