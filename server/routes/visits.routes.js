@@ -41,6 +41,23 @@ const validDate = (s) => {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
 };
 
+// A visit still open this long after arrival was abandoned (the officer forgot to depart). It is closed
+// at the last location fix we have, so the officer is never locked out of starting their next visit.
+const STALE_VISIT_HOURS = 16;
+const closeStaleVisits = (db, epf) => db.query(
+  `UPDATE site_visits v
+   SET departed_at = s.ended_at,
+       duration_minutes = GREATEST(0, ROUND(EXTRACT(EPOCH FROM (s.ended_at - v.arrived_at)) / 60))::int,
+       notes = CONCAT_WS(' ', NULLIF(v.notes, ''), 'Auto-closed: the officer did not depart.')
+   FROM (
+     SELECT x.visit_id, COALESCE((SELECT MAX(p.recorded_at) FROM location_pings p WHERE p.visit_id = x.visit_id), x.arrived_at) AS ended_at
+     FROM site_visits x
+     WHERE x.officer_epf = $1 AND x.departed_at IS NULL AND x.arrived_at < CURRENT_TIMESTAMP - ($2 || ' hours')::interval
+   ) s
+   WHERE v.visit_id = s.visit_id`,
+  [epf, STALE_VISIT_HOURS]
+);
+
 // POST /api/visits/arrive
 router.post('/arrive', authenticate, requireRole(...VISIT_ROLES), validatePayload(['siteId', 'lat', 'lng']), requireSiteInScope, async (req, res) => {
   const point = parsePoint(req.body.lat, req.body.lng);
@@ -78,6 +95,7 @@ router.post('/arrive', authenticate, requireRole(...VISIT_ROLES), validatePayloa
 
     const visitId = makeRecordId('VISIT');
     await db.query('BEGIN');
+    await closeStaleVisits(db, req.user.epf);
     await db.query(
       `INSERT INTO site_visits (visit_id, officer_epf, officer_name, officer_role, site_id, site_name,
                                 arrival_lat, arrival_lng, distance_from_site_m, on_site, travel_km)
@@ -182,6 +200,7 @@ router.post('/ping', authenticate, requireRole(...VISIT_ROLES), validatePayload(
 // GET /api/visits/mine
 router.get('/mine', authenticate, requireRole(...VISIT_ROLES), async (req, res) => {
   try {
+    await closeStaleVisits({ query }, req.user.epf);
     const today = await query(
       `SELECT ${VISIT_COLUMNS} FROM site_visits
        WHERE officer_epf = $1 AND (arrived_at AT TIME ZONE '${TZ}')::date = (CURRENT_TIMESTAMP AT TIME ZONE '${TZ}')::date
@@ -261,11 +280,18 @@ router.get('/live', authenticate, requireRole(...LIVE_MAP_ROLES), async (req, re
       scope.params
     );
 
+    // Officers are scoped by their own region/sector, so the site an officer is visiting can be
+    // outside the viewer's scope. Show where the officer is, but not which site that is.
+    const visible = new Set((await query(`SELECT site_id FROM sites WHERE site_id IN (${scope.sql})`, scope.params)).rows.map((s) => s.site_id));
+    const officerRows = officers.rows.map((o) =>
+      o.siteId === null || visible.has(o.siteId) ? o : { ...o, visitId: null, siteId: null, siteName: null, arrivedAt: null }
+    );
+
     return res.json({
       generatedAt: new Date().toISOString(),
       windowMinutes: minutes,
       geofenceMeters: GEOFENCE_METERS,
-      officers: officers.rows,
+      officers: officerRows,
       sites: sites.rows
     });
   } catch (error) {

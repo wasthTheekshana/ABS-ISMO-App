@@ -229,6 +229,57 @@ describe('GET /api/visits/mine and /list', () => {
   });
 });
 
+// Regression: an officer who forgot to depart used to be blocked from every new visit, indefinitely.
+describe('abandoned visits', () => {
+  const openVisit = async (hoursAgo, pingHoursAgo) => {
+    await pool.query(
+      `INSERT INTO site_visits (visit_id, officer_epf, officer_name, officer_role, site_id, site_name, arrived_at)
+       VALUES ('VISIT-STALE', $1, $2, 'VO', $3, $4, CURRENT_TIMESTAMP - ($5 || ' hours')::interval)`,
+      [VO.epf, VO.name, SITES.A.id, SITES.A.name, hoursAgo]
+    );
+    if (pingHoursAgo !== undefined) {
+      await pool.query(
+        `INSERT INTO location_pings (officer_epf, visit_id, lat, lng, recorded_at)
+         VALUES ($1, 'VISIT-STALE', $2, $3, CURRENT_TIMESTAMP - ($4 || ' hours')::interval)`,
+        [VO.epf, SITES.A.lat, SITES.A.lng, pingHoursAgo]
+      );
+    }
+  };
+
+  it('closes a visit left open for over 16 hours when the officer arrives somewhere new', async () => {
+    await openVisit(20, 18); // last seen 18 hours ago, i.e. 2 hours into the visit
+
+    const res = await arrive(VO, SITES.B.id, AT_B);
+    expect(res.status).toBe(201);
+
+    const old = (await pool.query(`SELECT departed_at, arrived_at, duration_minutes, notes FROM site_visits WHERE visit_id = 'VISIT-STALE'`)).rows[0];
+    expect(old.departed_at).not.toBeNull();
+    expect(old.duration_minutes).toBe(120); // ended at the last location fix, not at "now"
+    expect(old.notes).toMatch(/Auto-closed/);
+  });
+
+  it('ends a visit with no pings at its arrival time (zero minutes)', async () => {
+    await openVisit(30);
+    expect((await arrive(VO, SITES.B.id, AT_B)).status).toBe(201);
+    const old = (await pool.query(`SELECT duration_minutes FROM site_visits WHERE visit_id = 'VISIT-STALE'`)).rows[0];
+    expect(old.duration_minutes).toBe(0);
+  });
+
+  it("no longer shows an abandoned visit as the officer's open visit", async () => {
+    await openVisit(20, 19);
+    const mine = await send('get', '/api/visits/mine', VO);
+    expect(mine.status).toBe(200);
+    expect(mine.body.open).toBeNull();
+  });
+
+  it('still blocks a second arrival while a recent visit is open', async () => {
+    await openVisit(2, 1);
+    const res = await arrive(VO, SITES.B.id, AT_B);
+    expect(res.status).toBe(409);
+    expect(res.body.existingRecord.visitId).toBe('VISIT-STALE');
+  });
+});
+
 describe('GET /api/visits/live (FR-8)', () => {
   const openBoth = async () => {
     await arrive(VO);
@@ -251,6 +302,27 @@ describe('GET /api/visits/live (FR-8)', () => {
       expect(res.status).toBe(200);
       expect(res.body.officers.map((o) => o.role)).toEqual(['VO']);
     }
+  });
+
+  // Regression: an officer is visible by their own sector/region, but the SITE they are visiting is only
+  // revealed to people who can see that site.
+  it("does not reveal a visited site outside the viewer's scope", async () => {
+    await send('post', '/api/visits/ping', VO, AT_A); // a recent fix so the VO is on the map
+    await pool.query(
+      `INSERT INTO site_visits (visit_id, officer_epf, officer_name, officer_role, site_id, site_name, arrival_lat, arrival_lng)
+       VALUES ('VISIT-OUT-OF-SCOPE', $1, $2, 'VO', $3, $4, $5, $6)`,
+      [VO.epf, VO.name, SITES.C.id, SITES.C.name, SITES.C.lat, SITES.C.lng]
+    );
+
+    // SM One (Sector 01) sees the VO, but site C is in Sector 02.
+    const sm = (await send('get', '/api/visits/live', SM_1)).body.officers;
+    expect(sm).toHaveLength(1);
+    expect(sm[0]).toMatchObject({ epf: VO.epf, siteId: null, siteName: null, visitId: null });
+    expect(JSON.stringify(sm)).not.toContain(SITES.C.name);
+
+    // MD can see every site, so the visit is still shown to them.
+    const md = (await send('get', '/api/visits/live', MD)).body.officers;
+    expect(md[0]).toMatchObject({ siteId: SITES.C.id, siteName: SITES.C.name, visitId: 'VISIT-OUT-OF-SCOPE' });
   });
 
   it('limits an AGM to their region and an SM to their sector', async () => {
