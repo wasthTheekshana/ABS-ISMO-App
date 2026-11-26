@@ -20,8 +20,14 @@ jobs:
   deploy:
     name: Pull, rebuild and check
     runs-on: ubuntu-latest
-    # Only deploy a commit whose CI run succeeded (a manual run is allowed straight away).
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    # Only deploy a push to main of THIS repository whose CI run succeeded (a manual run is allowed
+    # straight away). Pull requests, including ones from forks, never reach the server.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     env:
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
       DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
