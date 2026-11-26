@@ -9,9 +9,14 @@ table.register thead tr { border-bottom: 2px solid var(--rule-strong) !important
 table.register tbody tr:nth-child(even) { background: var(--band); }
 table.register tbody tr { border-bottom: 1px solid var(--rule) !important; }
 table.register td { vertical-align: top; }
-table.register th, table.register td { padding: 10px 14px; }
+table.register th, table.register td { padding: 10px 12px; }
+/* A long stamp ("Open & investigating") wraps onto two lines rather than widening its column. */
+table.register .badge { white-space: normal; text-align: center; line-height: 1.25; }
 table.register tr.subtotal { background: var(--brass-bg) !important; font-weight: 800; }
 table.register td.num { font-variant-numeric: tabular-nums; }
+/* Row buttons wrap inside their cell, so the Actions column never pushes the table wider than its panel. */
+.row-actions { display: flex; flex-wrap: wrap; gap: 6px; min-width: 96px; }
+.row-actions button { padding: 4px 10px; font-size: 12px; }
 
 /* On a phone each row becomes a stacked entry, labelled from its column header. */
 @media (max-width: 760px) {
@@ -28,6 +33,21 @@ table.register td.num { font-variant-numeric: tabular-nums; }
   table.register td:not([data-label])::before, table.register td[colspan]::before { content: none; }
   table.register td[colspan] { padding-left: 0 !important; font-weight: 800; }
   table.register td:empty { display: none !important; }
+}
+
+/* A table with many columns (incidents) stacks at laptop widths too, so its Actions are never cut off. */
+@media (min-width: 761px) and (max-width: 1300px) {
+  table.register.stack-md, table.register.stack-md tbody { display: block; }
+  table.register.stack-md thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  table.register.stack-md tr { display: block; padding: 10px 14px; }
+  table.register.stack-md td {
+    display: block !important; position: relative;
+    padding: 6px 0 6px 180px !important; text-align: left; max-width: none !important; border: 0; min-height: 30px;
+  }
+  table.register.stack-md td::before { content: attr(data-label); position: absolute; left: 0; top: 6px; width: 160px; font-size: 12px; font-weight: 700; color: var(--muted); }
+  table.register.stack-md td:not([data-label])::before, table.register.stack-md td[colspan]::before { content: none; }
+  table.register.stack-md td[colspan] { padding-left: 0 !important; font-weight: 800; }
+  table.register.stack-md td:empty { display: none !important; }
 }
 
 /* ---------- Sign in ---------- */

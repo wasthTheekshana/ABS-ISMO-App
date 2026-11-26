@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { apiService } from '../services/api';
+import { useNotesDialog } from './NotesDialog';
 
 const th = { padding: '10px 16px' };
 const headRow = { borderBottom: '1px solid var(--rule)', color: 'var(--muted)', fontSize: '11px', textTransform: 'none' };
@@ -32,6 +33,7 @@ export const FeedbackPanel = () => {
   const [busyId, setBusyId] = useState(null);
   const [error, setError] = useState(null);
   const [loaded, setLoaded] = useState(false);
+  const [askForNotes, notesDialog] = useNotesDialog();
 
   const load = useCallback(async () => {
     try {
@@ -49,9 +51,13 @@ export const FeedbackPanel = () => {
   const change = async (item, status) => {
     let notes;
     if (status === 'Resolved') {
-      notes = window.prompt(`How was this resolved? (required)\n${item.siteName}`);
+      notes = await askForNotes({
+        title: 'Resolve feedback',
+        subject: `${item.siteName} · ${item.clientName}`,
+        label: 'Resolution notes',
+        confirmLabel: 'Mark resolved'
+      });
       if (notes === null) return;
-      if (!notes.trim()) { setError('Resolution notes are required to resolve feedback'); return; }
     }
     setBusyId(item.feedbackId);
     setError(null);
@@ -71,6 +77,7 @@ export const FeedbackPanel = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px' }}>
+      {notesDialog}
       <div className="tiles">
         <Tile label="Responses" value={rows.length} tone="var(--info)" />
         <Tile label="Average overall" value={fmt(average(rows, 'overallRating'))} tone="var(--brass-ink)" />

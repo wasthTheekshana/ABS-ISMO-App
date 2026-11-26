@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { MapPin, FileText, User, Clock, Tag, Gauge, CircleDot, Banknote, Eye, ListChecks, Siren } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { apiService } from '../services/api';
+import { useNotesDialog } from './NotesDialog';
 
 const statusBadge = (status) => (status === 'Closed' ? 'badge-success' : status === 'Escalated' ? 'badge-danger' : 'badge-warning');
 const severityBadge = (s) => (s === 'Critical' || s === 'High' ? 'badge-danger' : s === 'Medium' ? 'badge-warning' : 'badge-info');
@@ -34,6 +35,7 @@ export const IncidentDetail = ({ incidentId, onBack }) => {
   const [audit, setAudit] = useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [askForNotes, notesDialog] = useNotesDialog();
 
   const loadAudit = useCallback(async () => {
     try {
@@ -59,9 +61,13 @@ export const IncidentDetail = ({ incidentId, onBack }) => {
   const change = async (status) => {
     let notes;
     if (status === 'Closed') {
-      notes = window.prompt(`Closure notes for ${incident.incidentId} (required):`);
+      notes = await askForNotes({
+        title: 'Close incident',
+        subject: `${incident.incidentId} · ${incident.siteName}`,
+        label: 'Closure notes',
+        confirmLabel: 'Close incident'
+      });
       if (notes === null) return;
-      if (!notes.trim()) { setError('Closure notes are required to close an incident'); return; }
     }
     setBusy(true);
     setError(null);
@@ -91,6 +97,7 @@ export const IncidentDetail = ({ incidentId, onBack }) => {
 
   return (
     <div className="page">
+      {notesDialog}
       <div className="crumbs">
         <button onClick={onBack}>Incidents</button><span>/</span><span>{incident.incidentId}</span>
       </div>

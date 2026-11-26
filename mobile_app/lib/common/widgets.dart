@@ -223,6 +223,7 @@ void showSnack(BuildContext context, String message, {bool error = false}) {
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(
       content: Text(message),
-      backgroundColor: error ? Brand.danger : Brand.surfaceElevated,
+      // Normal messages use the theme's dark background; the theme's light text is unreadable on a pale one.
+      backgroundColor: error ? Brand.danger : null,
     ));
 }

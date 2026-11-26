@@ -16,7 +16,10 @@ class ConfirmationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    // No app bar here, so the status bar sits on the light page: it needs dark icons.
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark,
+      child: Scaffold(
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -70,6 +73,7 @@ class ConfirmationScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

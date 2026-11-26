@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/providers.dart';
@@ -12,7 +13,10 @@ class ClientNoticeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authControllerProvider).value;
-    return Scaffold(
+    // No app bar here, so the status bar sits on the light page: it needs dark icons.
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark,
+      child: Scaffold(
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -43,6 +47,7 @@ class ClientNoticeScreen extends ConsumerWidget {
             ),
           ),
         ),
+      ),
       ),
     );
   }

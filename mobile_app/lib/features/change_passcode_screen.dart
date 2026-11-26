@@ -87,6 +87,8 @@ class _ChangePasscodeScreenState extends ConsumerState<ChangePasscodeScreen> {
           actions: [
             if (forced)
               TextButton(
+                // The app bar is dark plum: the default purple text would almost vanish on it.
+                style: TextButton.styleFrom(foregroundColor: Brand.onPrimary),
                 onPressed: _busy ? null : () => ref.read(authControllerProvider.notifier).logout(),
                 child: const Text('SIGN OUT'),
               ),

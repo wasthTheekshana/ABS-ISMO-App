@@ -65,7 +65,7 @@ export const ControlRoomBoard = () => {
   return (
     <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '8px' }}>
-        <h2 style={{ fontSize: '26px', fontWeight: '800', color: 'var(--ink)' }}>Control room<span className="live-badge">Live</span></h2>
+        <h1 style={{ fontSize: '26px', fontWeight: '800', color: 'var(--ink)' }}>Control room<span className="live-badge">Live</span></h1>
         <span style={{ fontSize: '11px', color: error ? 'var(--alarm)' : 'var(--dim)' }}>
           {error ? `Refresh failed (${error}); showing data from ` : 'Updated '}
           {new Date(board.generatedAt).toLocaleTimeString()} · refreshes every 30 s

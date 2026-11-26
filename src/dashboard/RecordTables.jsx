@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { apiService } from '../services/api';
+import { useNotesDialog } from './NotesDialog';
 
 /** SRS FR-15 checklist, in the SRS order. A null / missing value means "not recorded / not applicable". */
 export const INSPECTION_CHECKS = [
@@ -40,6 +41,7 @@ export const IncidentsTable = ({ incidents, canManage = false, onChanged, onOpen
   const [audit, setAudit] = useState([]);
   const [busyId, setBusyId] = useState(null);
   const [error, setError] = useState(null);
+  const [askForNotes, notesDialog] = useNotesDialog();
 
   if (incidents.length === 0) return <div style={emptyBox}>No incidents reported for this scope yet.</div>;
 
@@ -57,12 +59,16 @@ export const IncidentsTable = ({ incidents, canManage = false, onChanged, onOpen
     }
   };
 
-  const changeStatus = (incident, status) => {
+  const changeStatus = async (incident, status) => {
     let notes;
     if (status === 'Closed') {
-      notes = window.prompt(`Closure notes for ${incident.incidentId} (required):`);
+      notes = await askForNotes({
+        title: 'Close incident',
+        subject: `${incident.incidentId} · ${incident.siteName}`,
+        label: 'Closure notes',
+        confirmLabel: 'Close incident'
+      });
       if (notes === null) return;
-      if (!notes.trim()) { setError('Closure notes are required to close an incident'); return; }
     }
     run(incident.incidentId, () => apiService.updateIncidentStatus(incident.incidentId, status, notes));
   };
@@ -83,8 +89,9 @@ export const IncidentsTable = ({ incidents, canManage = false, onChanged, onOpen
 
   return (
     <div style={{ overflowX: 'auto' }}>
+      {notesDialog}
       {error && <div role="alert" style={{ padding: '10px 16px', fontSize: '12px', color: 'var(--alarm)' }}>{error}</div>}
-      <table className="register" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+      <table className="register stack-md" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
         <thead>
           <tr style={headRow}>
             <th style={th}>REF ID</th>
@@ -126,20 +133,22 @@ export const IncidentsTable = ({ incidents, canManage = false, onChanged, onOpen
                   {hasReporter && <td style={{ ...th, color: 'var(--ink-2)', fontSize: '12px' }}>{i.reportedBy}</td>}
                   <td style={{ ...th, color: 'var(--dim)', fontSize: '11px' }}>{new Date(i.createdAt).toLocaleString()}</td>
                   {canManage && (
-                    <td style={{ ...th, whiteSpace: 'nowrap' }}>
-                      {closed ? (
-                        <button className="btn-secondary" disabled={busy} onClick={() => changeStatus(i, 'Open & Investigating')} style={{ padding: '4px 8px', fontSize: '11px', marginRight: '6px' }}>Reopen</button>
-                      ) : (
-                        <>
-                          {i.status !== 'Escalated' && (
-                            <button className="btn-secondary" disabled={busy} onClick={() => changeStatus(i, 'Escalated')} style={{ padding: '4px 8px', fontSize: '11px', marginRight: '6px' }}>Escalate</button>
-                          )}
-                          <button className="btn-primary" disabled={busy} onClick={() => changeStatus(i, 'Closed')} style={{ padding: '4px 8px', fontSize: '11px', marginRight: '6px' }}>Close</button>
-                        </>
-                      )}
-                      <button className="btn-secondary" onClick={() => toggleAudit(i.incidentId)} style={{ padding: '4px 8px', fontSize: '11px' }}>
-                        {openAudit === i.incidentId ? 'Hide history' : 'History'}
-                      </button>
+                    <td style={th}>
+                      <div className="row-actions">
+                        {closed ? (
+                          <button className="btn-secondary" disabled={busy} onClick={() => changeStatus(i, 'Open & Investigating')}>Reopen</button>
+                        ) : (
+                          <>
+                            {i.status !== 'Escalated' && (
+                              <button className="btn-secondary" disabled={busy} onClick={() => changeStatus(i, 'Escalated')}>Escalate</button>
+                            )}
+                            <button className="btn-primary" disabled={busy} onClick={() => changeStatus(i, 'Closed')}>Close</button>
+                          </>
+                        )}
+                        <button className="btn-secondary" onClick={() => toggleAudit(i.incidentId)}>
+                          {openAudit === i.incidentId ? 'Hide history' : 'History'}
+                        </button>
+                      </div>
                     </td>
                   )}
                 </tr>
