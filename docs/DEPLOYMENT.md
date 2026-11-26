@@ -2,6 +2,8 @@
 
 Everything needed to move ISOMS off a developer PC. **Status: written from the working pilot setup but not yet rehearsed on a real server — do a dry run on a staging machine first.**
 
+> **DOK Solutions shared server (Docker):** use [`deploy/DOK-DEPLOY.md`](../deploy/DOK-DEPLOY.md). It has the compose file, Dockerfiles, Nginx block, first-account command and update steps, and was tested end to end on a local Docker. The rest of this guide covers running without Docker. On a real server use `npm run db:migrate` (tables only) and `npm run db:create-user`, never `db:seed`, which loads demo accounts with a shared passcode.
+
 ## 1. What runs where
 
 | Piece | What it is | Port |

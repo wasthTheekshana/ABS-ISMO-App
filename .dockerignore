@@ -1,0 +1,21 @@
+# Never copy secrets, local data or the phone app into an image.
+.env
+.env.*
+!.env.example
+**/*.jks
+**/key.properties
+**/*.apk
+**/*.aab
+.git
+.gitignore
+.claude
+graphify-out
+node_modules
+dist
+mobile_app
+docs
+server/tests
+srs_extracted.txt
+*.log
+*.tmp.mjs
+deploy/*.md
