@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "server": "node server/index.js",
     "db:seed": "node server/db/seed.js",
+    "db:migrate": "node server/db/migrate.js",
+    "db:create-user": "node server/db/create-user.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -24,7 +26,8 @@
     "lucide-react": "^0.344.0",
     "pg": "^8.11.3",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@types/react": "^18.2.64",

@@ -1,7 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import swaggerUi from 'swagger-ui-express';
 import { securityHeaders } from './middleware/security.js';
+import openapiSpec from './docs/openapi.js';
 
 import authRoutes from './routes/auth.routes.js';
 import kpiRoutes from './routes/kpi.routes.js';
@@ -26,6 +28,14 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
 
 const app = express();
 
+// Behind the shared Nginx every request arrives from the proxy's address. Without this the login
+// rate limit would count all users as one client and lock everyone out together. Set TRUST_PROXY to
+// the number of proxies in front of the app (1 on the DOK server); leave it unset when none.
+if (process.env.TRUST_PROXY) {
+  const hops = Number(process.env.TRUST_PROXY);
+  app.set('trust proxy', Number.isInteger(hops) && hops > 0 ? hops : false);
+}
+
 // Security & Middleware Setup
 app.use(securityHeaders);
 // Reflecting every origin (origin: true) plus credentials:true is a known anti-pattern —
@@ -43,6 +53,16 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Interactive API documentation (Swagger UI) and the raw OpenAPI file. On by default; set
+// DOCS_ENABLED=false to switch it off. It is public: it describes the API but exposes no data.
+if (process.env.DOCS_ENABLED !== 'false') {
+  app.get('/api/openapi.json', (req, res) => res.json(openapiSpec));
+  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec, {
+    customSiteTitle: 'ISOMS API',
+    swaggerOptions: { persistAuthorization: true, tagsSorter: 'alpha' }
+  }));
+}
 
 // API Routes
 app.use('/api/auth', authRoutes);
