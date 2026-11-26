@@ -57,12 +57,12 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" 'bash -se' <<'REMOTE'
           set -euo pipefail
-          cd ~/isoms-stack
+          cd ~/absismo-stack
           git pull --ff-only origin main
           git log -1 --oneline
           docker compose -f deploy/docker-compose.yml --env-file .env up -d --build
           docker compose -f deploy/docker-compose.yml --env-file .env ps
-          docker logs isoms-migrate | tail -5
+          docker logs absismo-migrate | tail -5
           # The shared Nginx may hold a stale container address after the containers were recreated.
           cd ~/dok-stack
           docker compose exec -T nginx nginx -s reload

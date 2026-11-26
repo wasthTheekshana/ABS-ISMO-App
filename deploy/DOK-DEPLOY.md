@@ -1,16 +1,17 @@
 # ISOMS on the DOK shared server
 
-Server: application-docker-server, 34.93.171.14. Stack folder: ~/isoms-stack.
+Server: application-docker-server, 34.93.171.14. Stack folder: ~/absismo-stack.
+All names start with absismo- because the workflow app on this server already uses isoms-api and isoms-web.
 Domain: ismo.testsys.shop (set as ISOMS_DOMAIN in .env). Commands are plain ASCII, one per line.
 
 ## What runs
 
 | Container | Image | Role | Reached by |
 |-----------|-------|------|------------|
-| isoms-db | postgres:16-alpine | database, data in /mnt/disks/data/db/isoms | isoms-api only (private network) |
-| isoms-migrate | isoms-api | one-shot: creates or updates the tables, then exits | runs at every start |
-| isoms-api | built from deploy/Dockerfile.api | the REST API on port 5010 | shared Nginx at /api/ |
-| isoms-web | built from deploy/Dockerfile.web | the web app on port 8080 | shared Nginx at / |
+| absismo-db | postgres:16-alpine | database, data in /mnt/disks/data/db/absismo | absismo-api only (private network) |
+| absismo-migrate | absismo-api | one-shot: creates or updates the tables, then exits | runs at every start |
+| absismo-api | built from deploy/Dockerfile.api | the REST API on port 5010 | shared Nginx at /api/ |
+| absismo-web | built from deploy/Dockerfile.web | the web app on port 8080 | shared Nginx at / |
 
 Limits: db 1 CPU / 2 GB, api 1 CPU / 1 GB, web 0.5 CPU / 256 MB, migrate 0.5 CPU / 512 MB (only while it runs).
 Nothing is published on a host port. Only the shared Nginx (80 and 443) is public.
@@ -30,8 +31,8 @@ nslookup ismo.testsys.shop
 The repository is private, so the server needs a deploy key or a token for it.
 
 ```
-git clone https://github.com/wasthTheekshana/ABS-ISMO-App.git ~/isoms-stack
-cd ~/isoms-stack
+git clone https://github.com/wasthTheekshana/ABS-ISMO-App.git ~/absismo-stack
+cd ~/absismo-stack
 ```
 
 ### 3. Settings
@@ -59,8 +60,8 @@ Confirm the data disk is mounted before anything starts, otherwise Postgres woul
 ```
 findmnt /mnt/disks/data
 grep disks/data /etc/fstab
-sudo mkdir -p /mnt/disks/data/db/isoms
-sudo chown -R 70:70 /mnt/disks/data/db/isoms
+sudo mkdir -p /mnt/disks/data/db/absismo
+sudo chown -R 70:70 /mnt/disks/data/db/absismo
 df -h /mnt/disks/data
 ```
 
@@ -69,17 +70,17 @@ uid 70 is the postgres user in the alpine image. Never chmod 777.
 ### 5. Build and start
 
 ```
-cd ~/isoms-stack
+cd ~/absismo-stack
 docker compose -f deploy/docker-compose.yml --env-file .env up -d --build
 docker compose -f deploy/docker-compose.yml --env-file .env ps
 docker stats --no-stream
 ```
 
-Expect isoms-db, isoms-api and isoms-web healthy and isoms-migrate exited with code 0.
+Expect absismo-db, absismo-api and absismo-web healthy and absismo-migrate exited with code 0.
 Check what the migration did:
 
 ```
-docker logs isoms-migrate
+docker logs absismo-migrate
 ```
 
 ### 6. First account
@@ -88,7 +89,7 @@ A new database has the tables but no people, so nobody can sign in yet. Create t
 It prints a one-time passcode once; give it to the person privately. They must choose their own at first sign-in.
 
 ```
-docker exec isoms-api node server/db/create-user.js --epf EPF-100 --name "Full Name" --role MD --title "Managing Director" --region "All Sri Lanka" --sector "All Sectors"
+docker exec absismo-api node server/db/create-user.js --epf EPF-100 --name "Full Name" --role MD --title "Managing Director" --region "All Sri Lanka" --sector "All Sectors"
 ```
 
 Do NOT run npm run db:seed on this server. It loads demo accounts that all share the passcode passcode123.
@@ -96,12 +97,21 @@ More accounts: a guard needs --site SITE-ID and a client needs --sites SITE-ID,S
 
 ### 7. Certificate
 
+The server blocks use the existing certificate in ~/dok-stack/certbot/conf/live/testsys.shop, the same one the other testsys.shop apps use.
+Check that it covers all subdomains (look for *.testsys.shop in the Domains line):
+
+```
+docker run --rm -v ~/dok-stack/certbot/conf:/etc/letsencrypt certbot/certbot certificates
+```
+
+If it is a wildcard, nothing to issue: only the DNS A record for ismo.testsys.shop (step 1) is needed.
+If it is not, issue one for this name and change the two ssl_certificate paths in nginx-isoms.conf to match:
+
 ```
 docker run --rm -it -v ~/dok-stack/certbot/conf:/etc/letsencrypt -v ~/dok-stack/certbot/www:/var/www/certbot certbot/certbot certonly --manual --preferred-challenges dns --email wasath@doksolutions.lk --agree-tos --no-eff-email -d ismo.testsys.shop
 ```
 
-Add the TXT record, check it on 8.8.8.8, 1.1.1.1 and 9.9.9.9, wait about 10 minutes, then press Enter.
-Check the real folder name under live/ before using it. Set a reminder: the certificate expires in 90 days.
+Check the real folder name under live/ before using it. The certificate expires every 90 days: renew it with the rest of testsys.shop.
 
 ### 8. Nginx
 
@@ -129,11 +139,11 @@ The API documentation (Swagger) is at https://ismo.testsys.shop/api/docs and the
 
 ### 10. Backups and monitoring
 
-The nightly script ~/scripts/backup-dbs.sh dumps every running Postgres container that has POSTGRES_USER, so isoms-db is included.
+The nightly script ~/scripts/backup-dbs.sh dumps every running Postgres container that has POSTGRES_USER, so absismo-db is included.
 Confirm after the next run, and test one restore:
 
 ```
-ls -la /mnt/disks/data/backups/db/isoms-db/
+ls -la /mnt/disks/data/backups/db/absismo-db/
 ```
 
 Add an Uptime Kuma monitor for https://ismo.testsys.shop/api/health.
@@ -149,12 +159,12 @@ flutter build apk --release --target-platform android-arm64 --dart-define=API_BA
 ## Updating after a push to main
 
 ```
-cd ~/isoms-stack
+cd ~/absismo-stack
 git pull origin main
 docker compose -f deploy/docker-compose.yml --env-file .env up -d --build
 docker compose -f deploy/docker-compose.yml --env-file .env ps
-docker logs --tail=50 isoms-api
-docker logs isoms-migrate
+docker logs --tail=50 absismo-api
+docker logs absismo-migrate
 ```
 
 The migration runs again on every start. It is safe to repeat: it only adds what is missing.
@@ -185,9 +195,9 @@ It does nothing until the secrets below exist, so CI works on its own.
 One-time setup. On the server, make a key used only for deploys:
 
 ```
-ssh-keygen -t ed25519 -f ~/.ssh/isoms_deploy -N "" -C github-actions-isoms
-cat ~/.ssh/isoms_deploy.pub >> ~/.ssh/authorized_keys
-cat ~/.ssh/isoms_deploy
+ssh-keygen -t ed25519 -f ~/.ssh/absismo_deploy -N "" -C github-actions-absismo
+cat ~/.ssh/absismo_deploy.pub >> ~/.ssh/authorized_keys
+cat ~/.ssh/absismo_deploy
 ssh-keyscan -t ed25519 34.93.171.14
 ```
 
@@ -200,6 +210,6 @@ In GitHub, open the repository, Settings, Secrets and variables, Actions, and ad
 | DEPLOY_SSH_KEY | the private key printed by the cat command (the whole file) |
 | DEPLOY_KNOWN_HOSTS | the line printed by ssh-keyscan |
 
-Then delete the private key from the server (rm ~/.ssh/isoms_deploy) and keep only the .pub line in authorized_keys.
+Then delete the private key from the server (rm ~/.ssh/absismo_deploy) and keep only the .pub line in authorized_keys.
 The first deploy still has to be done by hand with the steps above (certificate, Nginx blocks, first account).
 To deploy without a push, use Actions, Deploy to DOK server, Run workflow. To stop automatic deploys, delete the secrets.

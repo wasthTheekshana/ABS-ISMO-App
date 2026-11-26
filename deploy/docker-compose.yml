@@ -1,12 +1,15 @@
-# ISOMS on the DOK shared server. Run from the repository root (~/isoms-stack):
+# ISOMS on the DOK shared server. Run from the repository root (~/absismo-stack):
 #   docker compose -f deploy/docker-compose.yml --env-file .env up -d --build
 # Follows the DOK deployment rules: no host ports (expose only), the shared Nginx reaches only
-# isoms-web and isoms-api, the database is on a private network and its data is on the data disk.
+# absismo-web and absismo-api, the database is on a private network and its data is on the data disk.
+
+# Project name set explicitly: the folder is called deploy, which other stacks on the server may also use.
+name: absismo
 
 services:
   db:
     image: postgres:16-alpine
-    container_name: isoms-db
+    container_name: absismo-db
     restart: unless-stopped
     expose:
       - "5432"
@@ -21,9 +24,9 @@ services:
                -c work_mem=8MB
                -c max_connections=100
     volumes:
-      - /mnt/disks/data/db/isoms:/var/lib/postgresql/data
+      - /mnt/disks/data/db/absismo:/var/lib/postgresql/data
     networks:
-      - isoms-net
+      - absismo-net
     security_opt:
       - no-new-privileges:true
     deploy:
@@ -43,19 +46,19 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.api
-    image: isoms-api:latest
-    container_name: isoms-migrate
+    image: absismo-api:latest
+    container_name: absismo-migrate
     command: ["node", "server/db/migrate.js"]
     environment:
       NODE_ENV: production
-      DB_HOST: isoms-db
+      DB_HOST: absismo-db
       DB_PORT: "5432"
       DB_NAME: ${POSTGRES_DB}
       DB_USER: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
     networks:
-      - isoms-net
+      - absismo-net
     security_opt:
       - no-new-privileges:true
     deploy:
@@ -72,8 +75,8 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.api
-    image: isoms-api:latest
-    container_name: isoms-api
+    image: absismo-api:latest
+    container_name: absismo-api
     restart: unless-stopped
     expose:
       - "5010"
@@ -82,7 +85,7 @@ services:
       PORT: "5010"
       # One proxy (the shared Nginx) sits in front: without this the login limit would treat all users as one.
       TRUST_PROXY: "1"
-      DB_HOST: isoms-db
+      DB_HOST: absismo-db
       DB_PORT: "5432"
       DB_NAME: ${POSTGRES_DB}
       DB_USER: ${POSTGRES_USER}
@@ -91,7 +94,7 @@ services:
       FRONTEND_URL: https://${ISOMS_DOMAIN}
       DOCS_ENABLED: ${DOCS_ENABLED:-true}
     networks:
-      - isoms-net
+      - absismo-net
       - shared-nginx
     security_opt:
       - no-new-privileges:true
@@ -118,8 +121,8 @@ services:
       dockerfile: deploy/Dockerfile.web
       args:
         VITE_API_BASE_URL: https://${ISOMS_DOMAIN}/api
-    image: isoms-web:latest
-    container_name: isoms-web
+    image: absismo-web:latest
+    container_name: absismo-web
     restart: unless-stopped
     expose:
       - "8080"
@@ -141,8 +144,8 @@ services:
       retries: 3
 
 networks:
-  isoms-net:
-    name: isoms-app-net
+  absismo-net:
+    name: absismo-app-net
   shared-nginx:
     name: shared-nginx
     external: true

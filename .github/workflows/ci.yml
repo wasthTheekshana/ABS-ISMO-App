@@ -75,5 +75,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -f deploy/Dockerfile.api -t isoms-api:ci .
-      - run: docker build -f deploy/Dockerfile.web --build-arg VITE_API_BASE_URL=https://ismo.testsys.shop/api -t isoms-web:ci .
+      - run: docker build -f deploy/Dockerfile.api -t absismo-api:ci .
+      - run: docker build -f deploy/Dockerfile.web --build-arg VITE_API_BASE_URL=https://ismo.testsys.shop/api -t absismo-web:ci .
